@@ -274,27 +274,28 @@ const server = http.createServer((req, res) => {
     text-transform: uppercase;
   }
 
-  /* เคอร์เซอร์แบบมีตะไรตาม (custom cursor + sparkle trail) */
+  /* เคอร์เซอร์หมาชิบะ (ไม่มีแสงตามหลังแล้ว) */
   .cursor-dot {
     position: fixed;
     top: 0; left: 0;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 0 10px 3px rgba(255,255,255,0.7);
+    font-size: 28px;
+    line-height: 1;
     pointer-events: none;
     z-index: 9999;
-    transform: translate(-50%, -50%);
+    transform: translate(-10%, -10%) rotate(0deg);
+    transition: transform 0.08s ease-out;
+    user-select: none;
   }
 
-  .trail-particle {
+  /* เอฟเฟกต์ตอนคลิก: อุ้งเท้าเด้งขึ้นแล้วจางหาย */
+  .paw-pop {
     position: fixed;
     top: 0; left: 0;
-    border-radius: 50%;
+    font-size: 20px;
     pointer-events: none;
     z-index: 9998;
-    background: radial-gradient(circle, #bfe4ff 0%, #4fa8ff 60%, transparent 80%);
     transform: translate(-50%, -50%);
+    user-select: none;
   }
 
   @media (max-width: 560px) {
@@ -384,56 +385,66 @@ const server = http.createServer((req, res) => {
 
   </div>
 
-  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-dot" id="cursorDot">🐕</div>
 
   <script>
-    // จุดกลมตรงกลางเคอร์เซอร์ ตามเมาส์ทันที
+    // เคอร์เซอร์หมาชิบะ ตามเมาส์ทันที พร้อมเอียงตัวนิดๆ ตามทิศทางการเคลื่อนที่
     const cursorDot = document.getElementById('cursorDot');
+    let prevX = null, prevY = null;
+
     document.addEventListener('mousemove', (e) => {
       cursorDot.style.left = e.clientX + 'px';
       cursorDot.style.top = e.clientY + 'px';
-      spawnParticle(e.clientX, e.clientY);
+
+      if (prevX !== null) {
+        const dx = e.clientX - prevX;
+        const tilt = Math.max(-25, Math.min(25, dx * 1.5));
+        cursorDot.style.transform = \`translate(-10%, -10%) rotate(\${tilt}deg)\`;
+      }
+      prevX = e.clientX;
+      prevY = e.clientY;
     });
 
-    // ฟังก์ชันสร้างประกายตามหลังเคอร์เซอร์ (สลายตัวไปเรื่อยๆ)
-    let lastSpawn = 0;
-    function spawnParticle(x, y) {
-      const now = Date.now();
-      if (now - lastSpawn < 25) return; // จำกัดความถี่ ไม่ให้หนักเกินไป
-      lastSpawn = now;
+    // ตอนคลิก: อุ้งเท้าเด้งกระจายออกมาแล้วจางหาย
+    document.addEventListener('click', (e) => {
+      // หมาชิบะกระโดดตอนคลิก
+      cursorDot.style.transition = 'transform 0.15s ease-out';
+      cursorDot.style.transform += ' scale(1.4)';
+      setTimeout(() => {
+        cursorDot.style.transform = cursorDot.style.transform.replace(' scale(1.4)', '');
+      }, 150);
 
-      const p = document.createElement('div');
-      p.className = 'trail-particle';
-      const size = Math.random() * 8 + 4;
-      p.style.width = size + 'px';
-      p.style.height = size + 'px';
-      p.style.left = x + 'px';
-      p.style.top = y + 'px';
-      p.style.opacity = 0.8;
-      document.body.appendChild(p);
+      const pawCount = 5;
+      for (let i = 0; i < pawCount; i++) {
+        const paw = document.createElement('div');
+        paw.className = 'paw-pop';
+        paw.textContent = '🐾';
+        paw.style.left = e.clientX + 'px';
+        paw.style.top = e.clientY + 'px';
+        document.body.appendChild(paw);
 
-      let opacity = 0.8;
-      let scale = 1;
-      const drift = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 - 10 };
-      const startX = x, startY = y;
-      const startTime = performance.now();
-      const duration = 700 + Math.random() * 300;
+        const angle = (Math.PI * 2 * i) / pawCount + Math.random() * 0.5;
+        const distance = 40 + Math.random() * 30;
+        const targetX = Math.cos(angle) * distance;
+        const targetY = Math.sin(angle) * distance;
+        const startTime = performance.now();
+        const duration = 500 + Math.random() * 200;
 
-      function animate(t) {
-        const elapsed = t - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        opacity = 0.8 * (1 - progress);
-        scale = 1 + progress * 0.8;
-        p.style.opacity = opacity;
-        p.style.transform = \`translate(-50%, -50%) translate(\${drift.x * progress}px, \${drift.y * progress}px) scale(\${scale})\`;
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          p.remove();
+        function animatePaw(t) {
+          const elapsed = t - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const ease = 1 - Math.pow(1 - progress, 2);
+          paw.style.transform = \`translate(-50%, -50%) translate(\${targetX * ease}px, \${targetY * ease}px) scale(\${1 - progress * 0.5}) rotate(\${angle}rad)\`;
+          paw.style.opacity = 1 - progress;
+          if (progress < 1) {
+            requestAnimationFrame(animatePaw);
+          } else {
+            paw.remove();
+          }
         }
+        requestAnimationFrame(animatePaw);
       }
-      requestAnimationFrame(animate);
-    }
+    });
   </script>
 
 </body>
