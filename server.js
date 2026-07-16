@@ -9,12 +9,9 @@ const profileImage = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAY
 
 // 3. สร้างเครื่องแม่ข่าย (Server) ที่คอยรับคำขอ (req) และตอบกลับ (res)
 const server = http.createServer((req, res) => {
-  // 3.1 ตั้งรหัสสถานะ 200 หมายถึง "ทำงานสำเร็จ (OK)"
   res.statusCode = 200;
-  // 3.2 บอกเบราว์เซอร์ของผู้ใช้ว่า สิ่งที่ส่งกลับไปคือไฟล์ข้อความแบบ HTML และรองรับภาษาไทย (utf-8)
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
 
-  // 3.3 ส่งข้อมูลหน้าเว็บกลับไปหาผู้ใช้ (โทนขาว-ฟ้า-ดำ สไตล์อาร์ต + เคอร์เซอร์มีตะไรตาม)
   res.end(`
 <!DOCTYPE html>
 <html lang="th">
@@ -25,28 +22,91 @@ const server = http.createServer((req, res) => {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  :root {
+    --bg1: #06090f;
+    --bg2: #0d1420;
+    --bg3: #050709;
+    --text-main: #eaf4ff;
+    --text-soft: #9db6ce;
+    --accent: #7fc8ff;
+    --accent-soft: rgba(127,200,255,0.18);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(127,200,255,0.18);
+    --pixel-color: #7fc8ff;
+  }
+
+  body.light-mode {
+    --bg1: #eef6ff;
+    --bg2: #dbeeff;
+    --bg3: #ffffff;
+    --text-main: #0b1b2b;
+    --text-soft: #3d5a75;
+    --accent: #0077cc;
+    --accent-soft: rgba(0,119,204,0.12);
+    --card-bg: rgba(255,255,255,0.55);
+    --card-border: rgba(0,119,204,0.25);
+    --pixel-color: #0077cc;
+  }
+
   body {
     min-height: 100vh;
     background:
       radial-gradient(circle at 15% 10%, rgba(120, 190, 255, 0.15), transparent 40%),
       radial-gradient(circle at 90% 80%, rgba(255,255,255,0.08), transparent 35%),
-      linear-gradient(160deg, #06090f 0%, #0d1420 45%, #050709 100%);
+      linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 100%);
     font-family: 'Segoe UI', 'Tahoma', 'Sarabun', sans-serif;
-    color: #eaf4ff;
+    color: var(--text-main);
     padding: 60px 20px;
     position: relative;
     overflow-x: hidden;
     cursor: none;
+    transition: background 0.4s ease, color 0.4s ease;
   }
 
   a, button { cursor: none; }
 
-  /* เส้นลายกราฟิกประดับพื้นหลัง แบบลายเส้นศิลปะ */
+  #pixelCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+
+  /* เส้นสแกนไลน์ย้อนยุค */
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.08) 0px,
+      rgba(0,0,0,0.08) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+  }
+
+  body.light-mode .scanlines {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.03) 0px,
+      rgba(0,0,0,0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
   .deco-line {
     position: fixed;
     border-radius: 50%;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
   }
   .deco-line.one {
     width: 500px; height: 500px;
@@ -61,10 +121,10 @@ const server = http.createServer((req, res) => {
   .deco-dot {
     position: fixed;
     width: 6px; height: 6px;
-    background: #7fc8ff;
+    background: var(--accent);
     border-radius: 50%;
     box-shadow: 0 0 12px 3px rgba(127,200,255,0.6);
-    z-index: 0;
+    z-index: 1;
   }
   .d1 { top: 12%; left: 8%; }
   .d2 { top: 70%; left: 92%; }
@@ -78,11 +138,32 @@ const server = http.createServer((req, res) => {
     margin: 0 auto;
   }
 
-  /* ส่วนหัว */
+  /* ปุ่มสลับโหมด */
+  .mode-toggle {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    z-index: 9997;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1.5px solid var(--card-border);
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 0 20px rgba(127,200,255,0.2);
+    transition: transform 0.3s ease, background 0.4s ease;
+  }
+  .mode-toggle:hover { transform: scale(1.08) rotate(15deg); }
+  .mode-toggle:active { transform: scale(0.92); }
+
   .hero {
     text-align: center;
     padding-bottom: 40px;
-    border-bottom: 1px solid rgba(120,190,255,0.25);
+    border-bottom: 1px solid var(--card-border);
     margin-bottom: 40px;
     animation: fadeDown 1s ease;
   }
@@ -112,7 +193,7 @@ const server = http.createServer((req, res) => {
   .hero h1 {
     font-size: 2rem;
     letter-spacing: 1px;
-    background: linear-gradient(90deg, #ffffff, #9fd8ff, #ffffff);
+    background: linear-gradient(90deg, var(--text-main), var(--accent), var(--text-main));
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
@@ -124,7 +205,7 @@ const server = http.createServer((req, res) => {
 
   .hero .nickname {
     margin-top: 8px;
-    color: #7fc8ff;
+    color: var(--accent);
     font-size: 1rem;
     letter-spacing: 3px;
     text-transform: uppercase;
@@ -132,7 +213,7 @@ const server = http.createServer((req, res) => {
 
   .hero .tagline {
     margin-top: 16px;
-    color: #9db6ce;
+    color: var(--text-soft);
     font-size: 0.85rem;
   }
 
@@ -142,11 +223,11 @@ const server = http.createServer((req, res) => {
     gap: 8px;
     margin-top: 20px;
     padding: 6px 16px;
-    border: 1px solid rgba(127,200,255,0.4);
+    border: 1px solid var(--card-border);
     border-radius: 30px;
     font-size: 0.8rem;
-    color: #bfe4ff;
-    background: rgba(127,200,255,0.06);
+    color: var(--accent);
+    background: var(--accent-soft);
   }
   .status-badge .dot {
     width: 8px; height: 8px;
@@ -157,12 +238,11 @@ const server = http.createServer((req, res) => {
   }
   @keyframes blink { 50% { opacity: 0.25; } }
 
-  /* การ์ดข้อมูล */
   .section-title {
     font-size: 0.78rem;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: #7fc8ff;
+    color: var(--accent);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -172,7 +252,7 @@ const server = http.createServer((req, res) => {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, rgba(127,200,255,0.4), transparent);
+    background: linear-gradient(90deg, var(--card-border), transparent);
   }
 
   .grid {
@@ -180,36 +260,38 @@ const server = http.createServer((req, res) => {
     grid-template-columns: repeat(2, 1fr);
     gap: 14px;
     margin-bottom: 44px;
+    perspective: 900px;
   }
 
   .info-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(127,200,255,0.18);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 14px;
     padding: 16px 18px;
     backdrop-filter: blur(10px);
-    transition: transform 0.25s ease, border-color 0.25s ease;
+    transition: transform 0.12s ease-out, border-color 0.25s ease, box-shadow 0.2s ease;
+    transform-style: preserve-3d;
+    will-change: transform;
   }
   .info-card:hover {
-    transform: translateY(-3px);
     border-color: rgba(127,200,255,0.5);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(127,200,255,0.15);
   }
   .info-card .label {
     font-size: 0.7rem;
-    color: #7fa8c9;
+    color: var(--text-soft);
     letter-spacing: 1px;
     margin-bottom: 6px;
     text-transform: uppercase;
   }
   .info-card .value {
     font-size: 0.98rem;
-    color: #f2f8ff;
+    color: var(--text-main);
     font-weight: 500;
   }
 
   .full { grid-column: 1 / -1; }
 
-  /* งานอดิเรก แบบ tag */
   .tags {
     display: flex;
     flex-wrap: wrap;
@@ -219,12 +301,11 @@ const server = http.createServer((req, res) => {
     padding: 8px 16px;
     border-radius: 30px;
     background: linear-gradient(135deg, rgba(127,200,255,0.12), rgba(255,255,255,0.03));
-    border: 1px solid rgba(127,200,255,0.3);
+    border: 1px solid var(--card-border);
     font-size: 0.85rem;
-    color: #dff0ff;
+    color: var(--text-main);
   }
 
-  /* Timeline การศึกษา */
   .timeline {
     position: relative;
     padding-left: 26px;
@@ -234,7 +315,7 @@ const server = http.createServer((req, res) => {
     position: absolute;
     left: 6px; top: 4px; bottom: 4px;
     width: 1px;
-    background: linear-gradient(180deg, #7fc8ff, transparent);
+    background: linear-gradient(180deg, var(--accent), transparent);
   }
   .t-item {
     position: relative;
@@ -247,34 +328,33 @@ const server = http.createServer((req, res) => {
     left: -26px; top: 4px;
     width: 11px; height: 11px;
     border-radius: 50%;
-    background: #0d1420;
-    border: 2px solid #7fc8ff;
+    background: var(--bg2);
+    border: 2px solid var(--accent);
     box-shadow: 0 0 10px rgba(127,200,255,0.5);
   }
   .t-item .t-level {
     font-size: 0.72rem;
-    color: #7fc8ff;
+    color: var(--accent);
     letter-spacing: 1px;
     text-transform: uppercase;
     margin-bottom: 4px;
   }
   .t-item .t-place {
     font-size: 1rem;
-    color: #f2f8ff;
+    color: var(--text-main);
   }
 
   footer {
     text-align: center;
     margin-top: 50px;
     padding-top: 24px;
-    border-top: 1px solid rgba(127,200,255,0.15);
+    border-top: 1px solid var(--card-border);
     font-size: 0.72rem;
-    color: #5a7896;
+    color: var(--text-soft);
     letter-spacing: 2px;
     text-transform: uppercase;
   }
 
-  /* เคอร์เซอร์หมาชิบะ (ไม่มีแสงตามหลังแล้ว) */
   .cursor-dot {
     position: fixed;
     top: 0; left: 0;
@@ -287,7 +367,6 @@ const server = http.createServer((req, res) => {
     user-select: none;
   }
 
-  /* เอฟเฟกต์ตอนคลิก: อุ้งเท้าเด้งขึ้นแล้วจางหาย */
   .paw-pop {
     position: fixed;
     top: 0; left: 0;
@@ -306,12 +385,17 @@ const server = http.createServer((req, res) => {
 </head>
 <body>
 
+  <canvas id="pixelCanvas"></canvas>
+  <div class="scanlines"></div>
+
   <div class="deco-line one"></div>
   <div class="deco-line two"></div>
   <div class="deco-dot d1"></div>
   <div class="deco-dot d2"></div>
   <div class="deco-dot d3"></div>
   <div class="deco-dot d4"></div>
+
+  <button class="mode-toggle" id="modeToggle" title="สลับโหมดมืด/สว่าง">🌙</button>
 
   <div class="wrap">
 
@@ -327,23 +411,23 @@ const server = http.createServer((req, res) => {
 
     <div class="section-title">ข้อมูลส่วนตัว</div>
     <div class="grid">
-      <div class="info-card">
+      <div class="info-card tilt-card">
         <div class="label">ชื่อเล่น</div>
         <div class="value">คิม</div>
       </div>
-      <div class="info-card">
+      <div class="info-card tilt-card">
         <div class="label">วัน-เดือน-ปีเกิด</div>
         <div class="value">26 ตุลาคม 2550</div>
       </div>
-      <div class="info-card">
+      <div class="info-card tilt-card">
         <div class="label">อายุ</div>
         <div class="value">19 ปี</div>
       </div>
-      <div class="info-card">
+      <div class="info-card tilt-card">
         <div class="label">สัญชาติ / เชื้อชาติ</div>
         <div class="value">ไทย / ไทย</div>
       </div>
-      <div class="info-card full">
+      <div class="info-card full tilt-card">
         <div class="label">รหัสนักศึกษา</div>
         <div class="value">69319010223</div>
       </div>
@@ -351,7 +435,7 @@ const server = http.createServer((req, res) => {
 
     <div class="section-title">งานอดิเรก</div>
     <div class="grid">
-      <div class="info-card full">
+      <div class="info-card full tilt-card">
         <div class="tags">
           <span class="tag">🎬 ดูหนัง</span>
           <span class="tag">🐔 เลี้ยงไก่</span>
@@ -363,7 +447,7 @@ const server = http.createServer((req, res) => {
 
     <div class="section-title">ประวัติการศึกษา</div>
     <div class="grid">
-      <div class="info-card full">
+      <div class="info-card full tilt-card">
         <div class="timeline">
           <div class="t-item">
             <div class="t-level">ประถมศึกษา</div>
@@ -388,7 +472,106 @@ const server = http.createServer((req, res) => {
   <div class="cursor-dot" id="cursorDot">🐕</div>
 
   <script>
-    // เคอร์เซอร์หมาชิบะ ตามเมาส์ทันที พร้อมเอียงตัวนิดๆ ตามทิศทางการเคลื่อนที่
+    /* ===== Retro Pixel Particle Background ===== */
+    const canvas = document.getElementById('pixelCanvas');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const PIXEL_SIZE = 4;
+    const PARTICLE_COUNT = 90;
+    let particles = [];
+    let mouseX = -9999, mouseY = -9999;
+
+    function getPixelColor() {
+      return getComputedStyle(document.body).getPropertyValue('--pixel-color').trim() || '#7fc8ff';
+    }
+
+    function makeParticle() {
+      return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        size: PIXEL_SIZE * (1 + Math.floor(Math.random() * 2)),
+        alpha: 0.25 + Math.random() * 0.5
+      };
+    }
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(makeParticle());
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+    document.addEventListener('mouseleave', () => { mouseX = -9999; mouseY = -9999; });
+
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+      const color = getPixelColor();
+
+      for (const p of particles) {
+        const dx = p.x - mouseX;
+        const dy = p.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const repelRadius = 110;
+
+        if (dist < repelRadius) {
+          const force = (repelRadius - dist) / repelRadius;
+          p.x += (dx / (dist || 1)) * force * 3;
+          p.y += (dy / (dist || 1)) * force * 3;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        const px = Math.floor(p.x / PIXEL_SIZE) * PIXEL_SIZE;
+        const py = Math.floor(p.y / PIXEL_SIZE) * PIXEL_SIZE;
+
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    /* ===== Dark / Light Mode Toggle ===== */
+    const modeToggle = document.getElementById('modeToggle');
+    modeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      modeToggle.textContent = isLight ? '☀️' : '🌙';
+    });
+
+    /* ===== 3D Card Tilt Effect ===== */
+    const tiltCards = document.querySelectorAll('.tilt-card');
+    tiltCards.forEach((card) => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const relX = (e.clientX - rect.left) / rect.width - 0.5;
+        const relY = (e.clientY - rect.top) / rect.height - 0.5;
+        const rotateY = relX * 16;
+        const rotateX = -relY * 16;
+        card.style.transform = \`perspective(700px) rotateX(\${rotateX}deg) rotateY(\${rotateY}deg) translateZ(6px)\`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
+      });
+    });
+
+    /* ===== เคอร์เซอร์หมาชิบะ ===== */
     const cursorDot = document.getElementById('cursorDot');
     let prevX = null, prevY = null;
 
@@ -405,9 +588,7 @@ const server = http.createServer((req, res) => {
       prevY = e.clientY;
     });
 
-    // ตอนคลิก: อุ้งเท้าเด้งกระจายออกมาแล้วจางหาย
     document.addEventListener('click', (e) => {
-      // หมาชิบะกระโดดตอนคลิก
       cursorDot.style.transition = 'transform 0.15s ease-out';
       cursorDot.style.transform += ' scale(1.4)';
       setTimeout(() => {
