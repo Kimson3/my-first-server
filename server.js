@@ -23,36 +23,38 @@ const server = http.createServer((req, res) => {
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg1: #06090f;
-    --bg2: #0d1420;
-    --bg3: #050709;
-    --text-main: #eaf4ff;
-    --text-soft: #9db6ce;
-    --accent: #7fc8ff;
-    --accent-soft: rgba(127,200,255,0.18);
-    --card-bg: rgba(255,255,255,0.03);
-    --card-border: rgba(127,200,255,0.18);
-    --pixel-color: #7fc8ff;
+    --bg1: #12060a;
+    --bg2: #1c0a0f;
+    --bg3: #0a0505;
+    --text-main: #fff5f6;
+    --text-soft: #d9a9af;
+    --accent: #ff3b4e;
+    --accent-soft: rgba(255,59,78,0.16);
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,59,78,0.28);
+    --pixel-color: #4fb3ff;
+    --blue-pop: #4fb3ff;
   }
 
   body.light-mode {
-    --bg1: #eef6ff;
-    --bg2: #dbeeff;
+    --bg1: #fff8f8;
+    --bg2: #ffe9eb;
     --bg3: #ffffff;
-    --text-main: #0b1b2b;
-    --text-soft: #3d5a75;
-    --accent: #0077cc;
-    --accent-soft: rgba(0,119,204,0.12);
-    --card-bg: rgba(255,255,255,0.55);
-    --card-border: rgba(0,119,204,0.25);
-    --pixel-color: #0077cc;
+    --text-main: #2a0f13;
+    --text-soft: #8a4a52;
+    --accent: #e0233a;
+    --accent-soft: rgba(224,35,58,0.10);
+    --card-bg: rgba(255,255,255,0.65);
+    --card-border: rgba(224,35,58,0.25);
+    --pixel-color: #2f9dff;
+    --blue-pop: #2f9dff;
   }
 
   body {
     min-height: 100vh;
     background:
-      radial-gradient(circle at 15% 10%, rgba(120, 190, 255, 0.15), transparent 40%),
-      radial-gradient(circle at 90% 80%, rgba(255,255,255,0.08), transparent 35%),
+      radial-gradient(circle at 15% 10%, rgba(255, 59, 78, 0.14), transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(79, 179, 255, 0.10), transparent 35%),
       linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 100%);
     font-family: 'Segoe UI', 'Tahoma', 'Sarabun', sans-serif;
     color: var(--text-main);
@@ -74,7 +76,6 @@ const server = http.createServer((req, res) => {
     image-rendering: pixelated;
   }
 
-  /* เส้นสแกนไลน์ย้อนยุค */
   .scanlines {
     position: fixed;
     top: 0; left: 0;
@@ -110,20 +111,20 @@ const server = http.createServer((req, res) => {
   }
   .deco-line.one {
     width: 500px; height: 500px;
-    border: 1px solid rgba(120,190,255,0.15);
+    border: 1px solid rgba(255,59,78,0.15);
     top: -150px; left: -180px;
   }
   .deco-line.two {
     width: 700px; height: 700px;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(79,179,255,0.10);
     bottom: -300px; right: -250px;
   }
   .deco-dot {
     position: fixed;
     width: 6px; height: 6px;
-    background: var(--accent);
+    background: var(--blue-pop);
     border-radius: 50%;
-    box-shadow: 0 0 12px 3px rgba(127,200,255,0.6);
+    box-shadow: 0 0 12px 3px rgba(79,179,255,0.6);
     z-index: 1;
   }
   .d1 { top: 12%; left: 8%; }
@@ -138,7 +139,6 @@ const server = http.createServer((req, res) => {
     margin: 0 auto;
   }
 
-  /* ปุ่มสลับโหมด */
   .mode-toggle {
     position: fixed;
     top: 22px;
@@ -154,11 +154,34 @@ const server = http.createServer((req, res) => {
     align-items: center;
     justify-content: center;
     font-size: 1.4rem;
-    box-shadow: 0 0 20px rgba(127,200,255,0.2);
+    box-shadow: 0 0 20px rgba(255,59,78,0.2);
     transition: transform 0.3s ease, background 0.4s ease;
   }
   .mode-toggle:hover { transform: scale(1.08) rotate(15deg); }
   .mode-toggle:active { transform: scale(0.92); }
+
+  /* ปุ่มลับ Easter Egg ซ่อนอยู่มุมจอ */
+  .easter-egg {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    z-index: 9997;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.12;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .easter-egg:hover {
+    opacity: 0.7;
+    transform: scale(1.3) rotate(20deg);
+  }
 
   .hero {
     text-align: center;
@@ -178,9 +201,9 @@ const server = http.createServer((req, res) => {
     margin: 0 auto 22px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, rgba(127,200,255,0.15), rgba(255,255,255,0.05));
-    border: 2px solid rgba(127,200,255,0.55);
-    box-shadow: 0 0 30px rgba(127,200,255,0.3), inset 0 0 20px rgba(127,200,255,0.1);
+    background: linear-gradient(135deg, rgba(255,59,78,0.15), rgba(79,179,255,0.08));
+    border: 2px solid rgba(255,59,78,0.55);
+    box-shadow: 0 0 30px rgba(255,59,78,0.3), inset 0 0 20px rgba(79,179,255,0.12);
     overflow: hidden;
   }
 
@@ -193,15 +216,15 @@ const server = http.createServer((req, res) => {
   .hero h1 {
     font-size: 2rem;
     letter-spacing: 1px;
-    background: linear-gradient(90deg, var(--text-main), var(--accent), var(--text-main));
-    background-size: 200% auto;
+    background: linear-gradient(90deg, var(--text-main), var(--accent), var(--blue-pop), var(--text-main));
+    background-size: 300% auto;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: shine 6s linear infinite;
+    animation: shine 7s linear infinite;
   }
 
-  @keyframes shine { to { background-position: 200% center; } }
+  @keyframes shine { to { background-position: 300% center; } }
 
   .hero .nickname {
     margin-top: 8px;
@@ -232,8 +255,8 @@ const server = http.createServer((req, res) => {
   .status-badge .dot {
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: #6dffb0;
-    box-shadow: 0 0 8px #6dffb0;
+    background: var(--blue-pop);
+    box-shadow: 0 0 8px var(--blue-pop);
     animation: blink 1.6s infinite;
   }
   @keyframes blink { 50% { opacity: 0.25; } }
@@ -274,8 +297,8 @@ const server = http.createServer((req, res) => {
     will-change: transform;
   }
   .info-card:hover {
-    border-color: rgba(127,200,255,0.5);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(127,200,255,0.15);
+    border-color: rgba(255,59,78,0.55);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(79,179,255,0.15);
   }
   .info-card .label {
     font-size: 0.7rem;
@@ -300,7 +323,7 @@ const server = http.createServer((req, res) => {
   .tag {
     padding: 8px 16px;
     border-radius: 30px;
-    background: linear-gradient(135deg, rgba(127,200,255,0.12), rgba(255,255,255,0.03));
+    background: linear-gradient(135deg, rgba(255,59,78,0.12), rgba(79,179,255,0.06));
     border: 1px solid var(--card-border);
     font-size: 0.85rem;
     color: var(--text-main);
@@ -330,7 +353,7 @@ const server = http.createServer((req, res) => {
     border-radius: 50%;
     background: var(--bg2);
     border: 2px solid var(--accent);
-    box-shadow: 0 0 10px rgba(127,200,255,0.5);
+    box-shadow: 0 0 10px rgba(255,59,78,0.5);
   }
   .t-item .t-level {
     font-size: 0.72rem;
@@ -377,6 +400,26 @@ const server = http.createServer((req, res) => {
     user-select: none;
   }
 
+  /* พื้นหลังสีชมพูตอนกดปุ่มลับ */
+  .pink-flash {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #ff6fb0;
+    z-index: 9996;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* กระดาษ Confetti */
+  .confetti-piece {
+    position: fixed;
+    top: -20px;
+    z-index: 10000;
+    pointer-events: none;
+    border-radius: 2px;
+  }
+
   @media (max-width: 560px) {
     .grid { grid-template-columns: 1fr; }
     body { cursor: auto; }
@@ -387,6 +430,7 @@ const server = http.createServer((req, res) => {
 
   <canvas id="pixelCanvas"></canvas>
   <div class="scanlines"></div>
+  <div class="pink-flash" id="pinkFlash"></div>
 
   <div class="deco-line one"></div>
   <div class="deco-line two"></div>
@@ -396,6 +440,7 @@ const server = http.createServer((req, res) => {
   <div class="deco-dot d4"></div>
 
   <button class="mode-toggle" id="modeToggle" title="สลับโหมดมืด/สว่าง">🌙</button>
+  <button class="easter-egg" id="easterEgg" title="?">✦</button>
 
   <div class="wrap">
 
@@ -489,7 +534,7 @@ const server = http.createServer((req, res) => {
     let mouseX = -9999, mouseY = -9999;
 
     function getPixelColor() {
-      return getComputedStyle(document.body).getPropertyValue('--pixel-color').trim() || '#7fc8ff';
+      return getComputedStyle(document.body).getPropertyValue('--pixel-color').trim() || '#4fb3ff';
     }
 
     function makeParticle() {
@@ -626,6 +671,64 @@ const server = http.createServer((req, res) => {
         requestAnimationFrame(animatePaw);
       }
     });
+
+    /* ===== Easter Egg: ปุ่มลับมุมจอ -> Confetti + หน้าจอสีชมพูชั่วคราว ===== */
+    const easterEgg = document.getElementById('easterEgg');
+    const pinkFlash = document.getElementById('pinkFlash');
+    const confettiColors = ['#ff3b4e', '#4fb3ff', '#ffffff', '#ffd93b', '#6dffb0', '#ff8fce'];
+
+    easterEgg.addEventListener('click', () => {
+      triggerPinkFlash();
+      spawnConfetti(140);
+    });
+
+    function triggerPinkFlash() {
+      pinkFlash.style.transition = 'opacity 0.25s ease-in';
+      pinkFlash.style.opacity = '0.55';
+      setTimeout(() => {
+        pinkFlash.style.transition = 'opacity 1.2s ease-out';
+        pinkFlash.style.opacity = '0';
+      }, 350);
+    }
+
+    function spawnConfetti(count) {
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          const size = 6 + Math.random() * 8;
+          piece.style.width = size + 'px';
+          piece.style.height = (size * 0.4) + 'px';
+          piece.style.left = (Math.random() * 100) + 'vw';
+          piece.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+          const startRotate = Math.random() * 360;
+          piece.style.transform = \`rotate(\${startRotate}deg)\`;
+          document.body.appendChild(piece);
+
+          const fallDuration = 2200 + Math.random() * 1800;
+          const drift = (Math.random() - 0.5) * 200;
+          const startTime = performance.now();
+          const endY = window.innerHeight + 40;
+          const spin = (Math.random() - 0.5) * 720;
+
+          function fall(t) {
+            const elapsed = t - startTime;
+            const progress = Math.min(elapsed / fallDuration, 1);
+            const y = endY * progress;
+            const x = drift * progress;
+            const rot = startRotate + spin * progress;
+            piece.style.transform = \`translate(\${x}px, \${y}px) rotate(\${rot}deg)\`;
+            piece.style.opacity = 1 - progress * 0.3;
+            if (progress < 1) {
+              requestAnimationFrame(fall);
+            } else {
+              piece.remove();
+            }
+          }
+          requestAnimationFrame(fall);
+        }, Math.random() * 400);
+      }
+    }
   </script>
 
 </body>
