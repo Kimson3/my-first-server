@@ -6,6 +6,10 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 const port = process.env.PORT || 3000;
+
+// รายการอิโมจิสัตว์ทะเลน่ารักๆ สำหรับ Avatar (สุ่มตาม id)
+const seaAvatars = ['🐟', '🐠', '🐡', '🦑', '🦐', '🐢', '🐬', '🦀', '🐙', '🐳'];
+
 const server = http.createServer(async (req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -16,11 +20,13 @@ const server = http.createServer(async (req, res) => {
     const result = await client.query('SELECT * FROM students');
     client.release(); // คืนการเชื่อมต่อเมื่อใช้งานเสร็จ
 
-    // 4. สร้างแถวตารางจากข้อมูลที่ได้
+    // 4. สร้างแถวตารางจากข้อมูลที่ได้ พร้อม Avatar สัตว์ทะเล
     let rowsHtml = '';
-    result.rows.forEach(row => {
+    result.rows.forEach((row, index) => {
+      const avatar = seaAvatars[index % seaAvatars.length];
       rowsHtml += `
               <tr>
+                <td class="avatar-cell"><span class="avatar">${avatar}</span></td>
                 <td><span class="badge">${row.students_id}</span></td>
                 <td>${row.students_name}</td>
               </tr>
@@ -33,7 +39,7 @@ const server = http.createServer(async (req, res) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ฐานข้อมูลนักศึกษา - ใต้ทะเล</title>
+        <title>ฐานข้อมูลนักศึกษา</title>
         <style>
           :root {
             --bg-deep: #032b4f;
@@ -45,8 +51,9 @@ const server = http.createServer(async (req, res) => {
             --header-grad-1: #0b6e99;
             --header-grad-2: #033a5e;
             --row-alt: #eef8fc;
-            --row-hover: #d7f1fb;
+            --row-hover: #e0f2fe;
             --shadow: rgba(0, 20, 40, 0.35);
+            --footer-text: rgba(255, 255, 255, 0.65);
           }
           [data-theme="dark"] {
             --bg-deep: #010a14;
@@ -58,8 +65,9 @@ const server = http.createServer(async (req, res) => {
             --header-grad-1: #04425f;
             --header-grad-2: #011824;
             --row-alt: #08202f;
-            --row-hover: #0d3145;
+            --row-hover: #123449;
             --shadow: rgba(0, 0, 0, 0.6);
+            --footer-text: rgba(180, 220, 255, 0.5);
           }
 
           * { box-sizing: border-box; }
@@ -76,7 +84,10 @@ const server = http.createServer(async (req, res) => {
             background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg-mid) 45%, var(--bg-deep) 100%);
             transition: background 0.6s ease;
             position: relative;
-            padding: 40px 20px 260px;
+            padding: 40px 20px 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           /* ===== คลื่นขยับ ===== */
@@ -112,10 +123,25 @@ const server = http.createServer(async (req, res) => {
             100% { transform: translateY(-110vh) translateX(20px); opacity: 0; }
           }
 
+          /* ===== ปลาว่ายผ่านหน้าจอเฉยๆ (ambient) ===== */
+          .ambient-fish {
+            position: fixed;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.85;
+            animation: swimAcross linear infinite;
+          }
+          @keyframes swimAcross {
+            0% { transform: translateX(-10vw) translateY(0); }
+            50% { transform: translateX(55vw) translateY(-20px); }
+            100% { transform: translateX(110vw) translateY(0); }
+          }
+
           .container {
             position: relative;
             z-index: 2;
-            max-width: 800px;
+            width: 100%;
+            max-width: 1000px;
             margin: 0 auto;
             background: var(--card-bg);
             backdrop-filter: blur(6px);
@@ -155,16 +181,35 @@ const server = http.createServer(async (req, res) => {
             font-size: 14px;
             letter-spacing: 0.5px;
           }
+          th.avatar-col { width: 70px; text-align: center; }
           td {
             padding: 12px 16px;
             border-bottom: 1px solid rgba(120,120,120,0.15);
             color: var(--text-main);
             font-size: 14px;
-            transition: color 0.6s ease;
+            transition: color 0.6s ease, background-color 0.2s ease;
           }
+          tbody tr { transition: transform 0.2s ease, background-color 0.2s ease; }
           tbody tr:nth-child(even) { background-color: var(--row-alt); }
-          tbody tr:hover { background-color: var(--row-hover); transition: background-color 0.2s ease; }
+          tbody tr:hover {
+            background-color: var(--row-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+          }
           tbody tr:last-child td { border-bottom: none; }
+
+          .avatar-cell { text-align: center; }
+          .avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            font-size: 18px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #d7f1fb);
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          }
 
           .badge {
             display: inline-block;
@@ -185,7 +230,7 @@ const server = http.createServer(async (req, res) => {
             background: var(--card-bg);
             border: none;
             border-radius: 30px;
-            padding: 10px 18px;
+            padding: 10px 20px;
             font-size: 14px;
             font-weight: 600;
             color: var(--text-main);
@@ -196,7 +241,8 @@ const server = http.createServer(async (req, res) => {
             gap: 8px;
             transition: transform 0.2s ease, background 0.6s ease, color 0.6s ease;
           }
-          .theme-toggle:hover { transform: scale(1.05); }
+          .theme-toggle:hover { transform: scale(1.06); }
+          .theme-toggle .icons { font-size: 16px; }
 
           /* ===== ปลาที่ตามเมาส์ ===== */
           .fish {
@@ -232,6 +278,19 @@ const server = http.createServer(async (req, res) => {
             50% { transform: rotate(6deg); }
           }
           .coral { position: absolute; bottom: 0; }
+
+          /* ===== Footer ===== */
+          .footer {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            color: var(--footer-text);
+            transition: color 0.6s ease;
+          }
         </style>
       </head>
       <body data-theme="light">
@@ -248,14 +307,20 @@ const server = http.createServer(async (req, res) => {
         <!-- พื้นทะเล: สาหร่าย + ปะการัง -->
         <div class="seabed" id="seabed"></div>
 
-        <button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
+        <!-- ปลาว่ายผ่านหน้าจอแบบสุ่ม (ambient) -->
+        <div id="ambientFishContainer"></div>
+
+        <button class="theme-toggle" id="themeToggle">
+          <span class="icons" id="themeIcons">☀️🐚</span> Light Mode
+        </button>
 
         <div class="container">
-          <h1>🐬 ฐานข้อมูลนักศึกษาใต้สมุทร</h1>
+          <h1>🐬 ฐานข้อมูลนักศึกษา</h1>
           <p class="subtitle">ทดสอบการเชื่อมต่อฐานข้อมูล · ทั้งหมด ${result.rows.length} รายการ</p>
           <table>
             <thead>
               <tr>
+                <th class="avatar-col"></th>
                 <th>รหัสนักศึกษา</th>
                 <th>ชื่อ-นามสกุล</th>
               </tr>
@@ -266,7 +331,9 @@ const server = http.createServer(async (req, res) => {
           </table>
         </div>
 
-        <!-- ปลาที่ตามเมาส์ (สร้างด้วย JS หลายตัว) -->
+        <p class="footer">🌊 Undersea Student Management System v1.0</p>
+
+        <!-- ปลาที่ตามเมาส์ -->
         <div id="fishContainer"></div>
 
         <script>
@@ -332,6 +399,32 @@ const server = http.createServer(async (req, res) => {
           setInterval(spawnBackgroundBubble, 400);
           for (let i = 0; i < 10; i++) setTimeout(spawnBackgroundBubble, i * 200);
 
+          // ===== ปลาว่ายผ่านหน้าจอเฉยๆ (ambient, ซ้ายไปขวา ช้าๆ) =====
+          const ambientContainer = document.getElementById('ambientFishContainer');
+          const ambientColors = ['#48dbfb', '#feca57', '#ff9ff3', '#1dd1a1', '#ff9f43'];
+
+          function ambientFishSvg(color) {
+            return \`<svg viewBox="0 0 64 40" width="26" height="16" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="30" cy="20" rx="22" ry="13" fill="\${color}"/>
+              <path d="M8 20 L -6 8 L -6 32 Z" fill="\${color}"/>
+              <circle cx="42" cy="16" r="3" fill="#063a5e"/>
+            </svg>\`;
+          }
+
+          function spawnAmbientFish() {
+            const fish = document.createElement('div');
+            fish.className = 'ambient-fish';
+            const color = ambientColors[Math.floor(Math.random() * ambientColors.length)];
+            fish.innerHTML = ambientFishSvg(color);
+            fish.style.top = (10 + Math.random() * 70) + 'vh';
+            const duration = 14 + Math.random() * 10;
+            fish.style.animationDuration = duration + 's';
+            ambientContainer.appendChild(fish);
+            setTimeout(() => fish.remove(), duration * 1000);
+          }
+          setInterval(spawnAmbientFish, 3500);
+          for (let i = 0; i < 3; i++) setTimeout(spawnAmbientFish, i * 1200);
+
           // ===== ปลาที่ว่ายตามเมาส์ (มี delay ทำให้ดูเป็นฝูงตามหลัง) =====
           const fishContainer = document.getElementById('fishContainer');
           const fishColors = ['#ff9f43', '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3'];
@@ -393,10 +486,17 @@ const server = http.createServer(async (req, res) => {
 
           // ===== สลับโหมด Dark / Light =====
           const toggleBtn = document.getElementById('themeToggle');
+          const themeIcons = document.getElementById('themeIcons');
           const bodyEl = document.body;
           function applyTheme(theme) {
             bodyEl.setAttribute('data-theme', theme);
-            toggleBtn.innerHTML = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            if (theme === 'dark') {
+              themeIcons.textContent = '🌙🪼';
+              toggleBtn.lastChild.textContent = ' Dark Mode';
+            } else {
+              themeIcons.textContent = '☀️🐚';
+              toggleBtn.lastChild.textContent = ' Light Mode';
+            }
             localStorage.setItem('oceanTheme', theme);
           }
           const savedTheme = localStorage.getItem('oceanTheme') || 'light';
