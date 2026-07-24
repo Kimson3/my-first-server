@@ -21,7 +21,7 @@ html += `<table border="1" cellpadding="10">`;
 html += `<tr><th>69319010223</th><th>ธีรภัทร์ มูลรัตน์</th></tr>`;
 // วนลูปนําข้อมูลแต่ละแถวมาแสดง
 result.rows.forEach(row => {
-html += `<tr><td>${row.student_id}</td><td>${row.student_name}</td></tr>`;
+html += `<tr><td>${row.students_id}</td><td>${row.students_name}</td></tr>`;
 });
 html += `</table>`;
 res.end(html);
