@@ -69,7 +69,6 @@ const server = http.createServer(async (req, res) => {
             padding: 0;
             min-height: 100vh;
             overflow-x: hidden;
-            cursor: none;
           }
 
           body {
@@ -77,9 +76,10 @@ const server = http.createServer(async (req, res) => {
             background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg-mid) 45%, var(--bg-deep) 100%);
             transition: background 0.6s ease;
             position: relative;
-            padding: 40px 20px;
+            padding: 40px 20px 260px;
           }
 
+          /* ===== คลื่นขยับ ===== */
           .waves {
             position: fixed;
             bottom: 0; left: 0; width: 100%;
@@ -96,6 +96,7 @@ const server = http.createServer(async (req, res) => {
             100% { transform: translateX(-50%); }
           }
 
+          /* ===== ฟองอากาศลอยขึ้นพื้นหลัง ===== */
           .bubble {
             position: fixed;
             bottom: -50px;
@@ -109,20 +110,6 @@ const server = http.createServer(async (req, res) => {
             0% { transform: translateY(0) translateX(0); opacity: 0; }
             10% { opacity: 0.8; }
             100% { transform: translateY(-110vh) translateX(20px); opacity: 0; }
-          }
-
-          .mouse-bubble {
-            position: fixed;
-            border-radius: 50%;
-            pointer-events: none;
-            background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(140,220,255,0.15));
-            box-shadow: 0 0 10px rgba(150, 230, 255, 0.6);
-            z-index: 5;
-            animation: mouseBubblePop 1s ease-out forwards;
-          }
-          @keyframes mouseBubblePop {
-            0% { transform: scale(0.4) translateY(0); opacity: 0.9; }
-            100% { transform: scale(1.1) translateY(-60px); opacity: 0; }
           }
 
           .container {
@@ -189,6 +176,7 @@ const server = http.createServer(async (req, res) => {
             font-weight: 600;
           }
 
+          /* ===== ปุ่มสลับธีม ===== */
           .theme-toggle {
             position: fixed;
             top: 20px;
@@ -210,16 +198,40 @@ const server = http.createServer(async (req, res) => {
           }
           .theme-toggle:hover { transform: scale(1.05); }
 
-          .trident-cursor {
+          /* ===== ปลาที่ตามเมาส์ ===== */
+          .fish {
             position: fixed;
             top: 0; left: 0;
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             pointer-events: none;
-            z-index: 999;
-            transform: translate(-6px, -34px);
-            filter: drop-shadow(0 0 4px rgba(150,230,255,0.8));
+            z-index: 998;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
           }
+
+          /* ===== สาหร่ายและปะการังด้านล่าง ===== */
+          .seabed {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+          }
+          .seaweed {
+            position: absolute;
+            bottom: 0;
+            transform-origin: bottom center;
+            animation: sway 4s ease-in-out infinite;
+          }
+          @keyframes sway {
+            0%, 100% { transform: rotate(-6deg); }
+            50% { transform: rotate(6deg); }
+          }
+          .coral { position: absolute; bottom: 0; }
         </style>
       </head>
       <body data-theme="light">
@@ -233,10 +245,13 @@ const server = http.createServer(async (req, res) => {
           <svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path d="M0,140 C240,80 480,180 720,140 C960,80 1200,180 1440,140 L1440,220 L0,220 Z" fill="#ffffff" opacity="0.25"/></svg>
         </div>
 
+        <!-- พื้นทะเล: สาหร่าย + ปะการัง -->
+        <div class="seabed" id="seabed"></div>
+
         <button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
 
         <div class="container">
-          <h1>🔱 ฐานข้อมูลนักศึกษาใต้สมุทร</h1>
+          <h1>🐬 ฐานข้อมูลนักศึกษาใต้สมุทร</h1>
           <p class="subtitle">ทดสอบการเชื่อมต่อฐานข้อมูล · ทั้งหมด ${result.rows.length} รายการ</p>
           <table>
             <thead>
@@ -251,49 +266,57 @@ const server = http.createServer(async (req, res) => {
           </table>
         </div>
 
-        <svg class="trident-cursor" id="tridentCursor" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#fff6d5"/>
-              <stop offset="50%" stop-color="#ffd75e"/>
-              <stop offset="100%" stop-color="#b8860b"/>
-            </linearGradient>
-          </defs>
-          <g stroke="url(#goldGrad)" stroke-width="2.5" fill="url(#goldGrad)" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="32" y1="14" x2="32" y2="60" />
-            <path d="M18 4 L18 22 Q18 28 24 28" fill="none"/>
-            <path d="M46 4 L46 22 Q46 28 40 28" fill="none"/>
-            <path d="M32 2 L32 24" fill="none"/>
-            <polygon points="32,0 28,10 36,10" />
-            <polygon points="18,2 14,12 22,12" />
-            <polygon points="46,2 42,12 50,12" />
-            <path d="M24 44 Q32 50 40 44" fill="none" />
-          </g>
-        </svg>
+        <!-- ปลาที่ตามเมาส์ (สร้างด้วย JS หลายตัว) -->
+        <div id="fishContainer"></div>
 
         <script>
-          const cursor = document.getElementById('tridentCursor');
-          window.addEventListener('mousemove', (e) => {
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
-          });
+          // ===== สร้างพื้นทะเล: สาหร่าย + ปะการัง =====
+          const seabed = document.getElementById('seabed');
+          const seaweedColors = ['#0f9b6e', '#12b886', '#0b7a54'];
+          const coralColors = ['#ff6b6b', '#ff8fa3', '#ffa94d'];
 
-          let lastBubbleTime = 0;
-          window.addEventListener('mousemove', (e) => {
-            const now = Date.now();
-            if (now - lastBubbleTime < 60) return;
-            lastBubbleTime = now;
-            const bubble = document.createElement('div');
-            bubble.className = 'mouse-bubble';
-            const size = 6 + Math.random() * 14;
-            bubble.style.width = size + 'px';
-            bubble.style.height = size + 'px';
-            bubble.style.left = (e.clientX - size / 2) + 'px';
-            bubble.style.top = (e.clientY - size / 2) + 'px';
-            document.body.appendChild(bubble);
-            setTimeout(() => bubble.remove(), 1000);
-          });
+          function makeSeaweed(x, height, color, delay) {
+            const div = document.createElement('div');
+            div.className = 'seaweed';
+            div.style.left = x + 'px';
+            div.style.animationDelay = delay + 's';
+            div.innerHTML = \`
+              <svg width="30" height="\${height}" viewBox="0 0 30 \${height}">
+                <path d="M15 \${height} C 0 \${height*0.7}, 30 \${height*0.5}, 15 \${height*0.3} C 0 \${height*0.15}, 30 \${height*0.1}, 15 0"
+                  stroke="\${color}" stroke-width="6" fill="none" stroke-linecap="round"/>
+              </svg>
+            \`;
+            seabed.appendChild(div);
+          }
 
+          function makeCoral(x, scale, color) {
+            const div = document.createElement('div');
+            div.className = 'coral';
+            div.style.left = x + 'px';
+            div.style.transform = 'scale(' + scale + ')';
+            div.style.transformOrigin = 'bottom center';
+            div.innerHTML = \`
+              <svg width="60" height="70" viewBox="0 0 60 70">
+                <path d="M30 70 L30 40 M30 50 L15 20 M30 50 L45 20 M30 40 L18 15 M30 40 L42 15" 
+                  stroke="\${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <circle cx="15" cy="20" r="4" fill="\${color}"/>
+                <circle cx="45" cy="20" r="4" fill="\${color}"/>
+                <circle cx="18" cy="15" r="3.5" fill="\${color}"/>
+                <circle cx="42" cy="15" r="3.5" fill="\${color}"/>
+              </svg>
+            \`;
+            seabed.appendChild(div);
+          }
+
+          const seabedWidth = window.innerWidth;
+          for (let x = 0; x < seabedWidth; x += 90) {
+            makeSeaweed(x + Math.random()*20, 70 + Math.random()*60, seaweedColors[Math.floor(Math.random()*seaweedColors.length)], Math.random()*2);
+          }
+          for (let x = 40; x < seabedWidth; x += 220) {
+            makeCoral(x + Math.random()*40, 0.6 + Math.random()*0.6, coralColors[Math.floor(Math.random()*coralColors.length)]);
+          }
+
+          // ===== ฟองอากาศลอยขึ้นพื้นหลัง =====
           function spawnBackgroundBubble() {
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
@@ -309,6 +332,66 @@ const server = http.createServer(async (req, res) => {
           setInterval(spawnBackgroundBubble, 400);
           for (let i = 0; i < 10; i++) setTimeout(spawnBackgroundBubble, i * 200);
 
+          // ===== ปลาที่ว่ายตามเมาส์ (มี delay ทำให้ดูเป็นฝูงตามหลัง) =====
+          const fishContainer = document.getElementById('fishContainer');
+          const fishColors = ['#ff9f43', '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3'];
+          const fishCount = 4;
+          const fishEls = [];
+          const fishPos = [];
+
+          function fishSvg(color) {
+            return \`<svg viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="30" cy="20" rx="22" ry="13" fill="\${color}"/>
+              <path d="M8 20 L -6 8 L -6 32 Z" fill="\${color}"/>
+              <circle cx="42" cy="16" r="3" fill="#063a5e"/>
+              <path d="M18 20 Q26 12 34 20 Q26 28 18 20 Z" fill="rgba(255,255,255,0.3)"/>
+            </svg>\`;
+          }
+
+          for (let i = 0; i < fishCount; i++) {
+            const el = document.createElement('div');
+            el.className = 'fish';
+            el.innerHTML = fishSvg(fishColors[i % fishColors.length]);
+            el.style.width = (34 - i * 3) + 'px';
+            el.style.height = (34 - i * 3) + 'px';
+            fishContainer.appendChild(el);
+            fishEls.push(el);
+            fishPos.push({ x: window.innerWidth / 2, y: window.innerHeight / 2, angle: 0 });
+          }
+
+          let mouseX = window.innerWidth / 2;
+          let mouseY = window.innerHeight / 2;
+          window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+          });
+
+          function animateFish() {
+            let targetX = mouseX;
+            let targetY = mouseY;
+            fishPos.forEach((pos, i) => {
+              const ease = 0.08 - i * 0.008;
+              const dx = targetX - pos.x;
+              const dy = targetY - pos.y;
+              pos.x += dx * ease;
+              pos.y += dy * ease;
+              const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+              if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                pos.angle = angle;
+              }
+              const flip = (pos.angle > 90 || pos.angle < -90) ? -1 : 1;
+              fishEls[i].style.left = pos.x + 'px';
+              fishEls[i].style.top = pos.y + 'px';
+              fishEls[i].style.transform =
+                'translate(-50%, -50%) rotate(' + pos.angle + 'deg) scaleY(' + flip + ')';
+              targetX = pos.x;
+              targetY = pos.y;
+            });
+            requestAnimationFrame(animateFish);
+          }
+          animateFish();
+
+          // ===== สลับโหมด Dark / Light =====
           const toggleBtn = document.getElementById('themeToggle');
           const bodyEl = document.body;
           function applyTheme(theme) {
