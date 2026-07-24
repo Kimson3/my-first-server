@@ -25,12 +25,17 @@ const server = http.createServer(async (req, res) => {
     result.rows.forEach((row, index) => {
       const avatar = seaAvatars[index % seaAvatars.length];
       rowsHtml += `
-              <tr>
+              <tr class="student-row" data-search="${String(row.students_id).toLowerCase()} ${String(row.students_name).toLowerCase()}">
                 <td class="avatar-cell"><span class="avatar">${avatar}</span></td>
                 <td><span class="badge">${row.students_id}</span></td>
                 <td>${row.students_name}</td>
               </tr>
       `;
+    });
+
+    // วันที่อัปเดตล่าสุด (รูปแบบไทย)
+    const updatedAt = new Date().toLocaleString('th-TH', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
     const html = `
@@ -54,6 +59,7 @@ const server = http.createServer(async (req, res) => {
             --row-hover: #e0f2fe;
             --shadow: rgba(0, 20, 40, 0.35);
             --footer-text: rgba(255, 255, 255, 0.65);
+            --stat-bg: rgba(255, 255, 255, 0.85);
           }
           [data-theme="dark"] {
             --bg-deep: #010a14;
@@ -68,6 +74,7 @@ const server = http.createServer(async (req, res) => {
             --row-hover: #123449;
             --shadow: rgba(0, 0, 0, 0.6);
             --footer-text: rgba(180, 220, 255, 0.5);
+            --stat-bg: rgba(10, 25, 40, 0.85);
           }
 
           * { box-sizing: border-box; }
@@ -137,6 +144,44 @@ const server = http.createServer(async (req, res) => {
             100% { transform: translateX(110vw) translateY(0); }
           }
 
+          .top-bar {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+          }
+
+          .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: var(--stat-bg);
+            backdrop-filter: blur(6px);
+            border-radius: 14px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 25px var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: background 0.6s ease, transform 0.2s ease;
+          }
+          .stat-card:hover { transform: translateY(-3px); }
+          .stat-icon { font-size: 28px; }
+          .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            transition: color 0.6s ease;
+          }
+          .stat-label {
+            font-size: 12px;
+            color: var(--text-sub);
+            transition: color 0.6s ease;
+          }
+
           .container {
             position: relative;
             z-index: 2;
@@ -162,8 +207,43 @@ const server = http.createServer(async (req, res) => {
             text-align: center;
             color: var(--text-sub);
             font-size: 14px;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
             transition: color 0.6s ease;
+          }
+
+          /* ===== ช่องค้นหา ===== */
+          .search-wrap {
+            position: relative;
+            max-width: 360px;
+            margin: 0 auto 24px;
+          }
+          .search-wrap input {
+            width: 100%;
+            padding: 10px 16px 10px 38px;
+            border-radius: 24px;
+            border: 1px solid rgba(120,120,120,0.25);
+            background: var(--row-alt);
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: background 0.6s ease, color 0.6s ease, box-shadow 0.2s ease;
+          }
+          .search-wrap input:focus {
+            box-shadow: 0 0 0 3px rgba(11, 110, 153, 0.2);
+          }
+          .search-wrap .icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            opacity: 0.7;
+          }
+          .no-results {
+            text-align: center;
+            color: var(--text-sub);
+            padding: 20px;
+            display: none;
           }
 
           table {
@@ -314,9 +394,33 @@ const server = http.createServer(async (req, res) => {
           <span class="icons" id="themeIcons">☀️🐚</span> Light Mode
         </button>
 
+        <!-- การ์ดสรุปสถิติ -->
+        <div class="top-bar">
+          <div class="stat-card">
+            <span class="stat-icon">🎓</span>
+            <div>
+              <div class="stat-value">${result.rows.length}</div>
+              <div class="stat-label">นักศึกษาทั้งหมด</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🕒</span>
+            <div>
+              <div class="stat-value" style="font-size:15px;">${updatedAt}</div>
+              <div class="stat-label">อัปเดตล่าสุด</div>
+            </div>
+          </div>
+        </div>
+
         <div class="container">
           <h1>🐬 ฐานข้อมูลนักศึกษา</h1>
           <p class="subtitle">ทดสอบการเชื่อมต่อฐานข้อมูล · ทั้งหมด ${result.rows.length} รายการ</p>
+
+          <div class="search-wrap">
+            <span class="icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="ค้นหารหัสหรือชื่อนักศึกษา...">
+          </div>
+
           <table>
             <thead>
               <tr>
@@ -325,10 +429,11 @@ const server = http.createServer(async (req, res) => {
                 <th>ชื่อ-นามสกุล</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="studentTableBody">
               ${rowsHtml}
             </tbody>
           </table>
+          <p class="no-results" id="noResults">ไม่พบนักศึกษาที่ค้นหา 🐚</p>
         </div>
 
         <p class="footer">🌊 Undersea Student Management System v1.0</p>
@@ -337,10 +442,25 @@ const server = http.createServer(async (req, res) => {
         <div id="fishContainer"></div>
 
         <script>
-          // ===== สร้างพื้นทะเล: สาหร่าย + ปะการัง =====
+          // ===== ค้นหา/กรองรายชื่อนักศึกษา =====
+          const searchInput = document.getElementById('searchInput');
+          const noResults = document.getElementById('noResults');
+          searchInput.addEventListener('input', () => {
+            const q = searchInput.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.student-row');
+            let visibleCount = 0;
+            rows.forEach(row => {
+              const match = row.getAttribute('data-search').includes(q);
+              row.style.display = match ? '' : 'none';
+              if (match) visibleCount++;
+            });
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+          });
+
+          // ===== สร้างพื้นทะเล: สาหร่าย + ปะการัง (หนาแน่นขึ้น) =====
           const seabed = document.getElementById('seabed');
-          const seaweedColors = ['#0f9b6e', '#12b886', '#0b7a54'];
-          const coralColors = ['#ff6b6b', '#ff8fa3', '#ffa94d'];
+          const seaweedColors = ['#0f9b6e', '#12b886', '#0b7a54', '#17a589'];
+          const coralColors = ['#ff6b6b', '#ff8fa3', '#ffa94d', '#ff5e78'];
 
           function makeSeaweed(x, height, color, delay) {
             const div = document.createElement('div');
@@ -376,11 +496,11 @@ const server = http.createServer(async (req, res) => {
           }
 
           const seabedWidth = window.innerWidth;
-          for (let x = 0; x < seabedWidth; x += 90) {
-            makeSeaweed(x + Math.random()*20, 70 + Math.random()*60, seaweedColors[Math.floor(Math.random()*seaweedColors.length)], Math.random()*2);
+          for (let x = 0; x < seabedWidth; x += 55) {
+            makeSeaweed(x + Math.random()*15, 60 + Math.random()*70, seaweedColors[Math.floor(Math.random()*seaweedColors.length)], Math.random()*2);
           }
-          for (let x = 40; x < seabedWidth; x += 220) {
-            makeCoral(x + Math.random()*40, 0.6 + Math.random()*0.6, coralColors[Math.floor(Math.random()*coralColors.length)]);
+          for (let x = 20; x < seabedWidth; x += 130) {
+            makeCoral(x + Math.random()*30, 0.5 + Math.random()*0.7, coralColors[Math.floor(Math.random()*coralColors.length)]);
           }
 
           // ===== ฟองอากาศลอยขึ้นพื้นหลัง =====
@@ -401,10 +521,10 @@ const server = http.createServer(async (req, res) => {
 
           // ===== ปลาว่ายผ่านหน้าจอเฉยๆ (ambient, ซ้ายไปขวา ช้าๆ) =====
           const ambientContainer = document.getElementById('ambientFishContainer');
-          const ambientColors = ['#48dbfb', '#feca57', '#ff9ff3', '#1dd1a1', '#ff9f43'];
+          const ambientColors = ['#48dbfb', '#feca57', '#ff9ff3', '#1dd1a1', '#ff9f43', '#54a0ff'];
 
           function ambientFishSvg(color) {
-            return \`<svg viewBox="0 0 64 40" width="26" height="16" xmlns="http://www.w3.org/2000/svg">
+            return \`<svg viewBox="0 0 64 40" width="28" height="18" xmlns="http://www.w3.org/2000/svg">
               <ellipse cx="30" cy="20" rx="22" ry="13" fill="\${color}"/>
               <path d="M8 20 L -6 8 L -6 32 Z" fill="\${color}"/>
               <circle cx="42" cy="16" r="3" fill="#063a5e"/>
@@ -417,18 +537,18 @@ const server = http.createServer(async (req, res) => {
             const color = ambientColors[Math.floor(Math.random() * ambientColors.length)];
             fish.innerHTML = ambientFishSvg(color);
             fish.style.top = (10 + Math.random() * 70) + 'vh';
-            const duration = 14 + Math.random() * 10;
+            const duration = 12 + Math.random() * 10;
             fish.style.animationDuration = duration + 's';
             ambientContainer.appendChild(fish);
             setTimeout(() => fish.remove(), duration * 1000);
           }
-          setInterval(spawnAmbientFish, 3500);
-          for (let i = 0; i < 3; i++) setTimeout(spawnAmbientFish, i * 1200);
+          setInterval(spawnAmbientFish, 1800);
+          for (let i = 0; i < 6; i++) setTimeout(spawnAmbientFish, i * 700);
 
-          // ===== ปลาที่ว่ายตามเมาส์ (มี delay ทำให้ดูเป็นฝูงตามหลัง) =====
+          // ===== ปลาที่ว่ายตามเมาส์ (ฝูงใหญ่ขึ้น, มี delay ทำให้ดูเป็นฝูงตามหลัง) =====
           const fishContainer = document.getElementById('fishContainer');
-          const fishColors = ['#ff9f43', '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3'];
-          const fishCount = 4;
+          const fishColors = ['#ff9f43', '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#1dd1a1', '#54a0ff'];
+          const fishCount = 7;
           const fishEls = [];
           const fishPos = [];
 
@@ -445,8 +565,9 @@ const server = http.createServer(async (req, res) => {
             const el = document.createElement('div');
             el.className = 'fish';
             el.innerHTML = fishSvg(fishColors[i % fishColors.length]);
-            el.style.width = (34 - i * 3) + 'px';
-            el.style.height = (34 - i * 3) + 'px';
+            const size = 38 - i * 2.5;
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
             fishContainer.appendChild(el);
             fishEls.push(el);
             fishPos.push({ x: window.innerWidth / 2, y: window.innerHeight / 2, angle: 0 });
@@ -463,7 +584,7 @@ const server = http.createServer(async (req, res) => {
             let targetX = mouseX;
             let targetY = mouseY;
             fishPos.forEach((pos, i) => {
-              const ease = 0.08 - i * 0.008;
+              const ease = 0.09 - i * 0.007;
               const dx = targetX - pos.x;
               const dy = targetY - pos.y;
               pos.x += dx * ease;
